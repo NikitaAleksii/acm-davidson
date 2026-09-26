@@ -15,6 +15,46 @@ function transporter() {
   });
 }
 
+export function emailConfigured() {
+  return Boolean(process.env.SMTP_HOST);
+}
+
+/**
+ * Emails a one-time sign-in code. Goes to OTP_EMAIL if set (a shared officer
+ * inbox), otherwise to the admin's own address.
+ * Returns true if sent. Without SMTP in development the code is printed to the
+ * server log instead; in production the sign-in fails closed.
+ */
+export async function sendLoginCode(to: string, code: string): Promise<boolean> {
+  const t = transporter();
+  const recipient = process.env.OTP_EMAIL || to;
+  const subject = `${code} is your ${site.name} admin sign-in code`;
+  const text = [
+    `Your one-time sign-in code for the ${site.name} admin dashboard is:`,
+    "",
+    `    ${code}`,
+    "",
+    "It expires in 10 minutes. If you didn't try to sign in, ignore this email",
+    "and consider changing the admin password.",
+  ].join("\n");
+
+  if (!t) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[email] SMTP not configured; cannot send sign-in code.");
+      return false;
+    }
+    console.log(`[email] SMTP not configured. Sign-in code for ${recipient}: ${code}`);
+    return true;
+  }
+  await t.sendMail({
+    from: process.env.SMTP_FROM ?? `ACM Davidson Website <${site.email}>`,
+    to: recipient,
+    subject,
+    text,
+  });
+  return true;
+}
+
 export type ContactMessage = {
   name: string;
   email: string;

@@ -37,7 +37,7 @@ model Post {
   title       String
   excerpt     String?
   content     String
-  tags        String    @default("") // comma-separated, e.g. "Workshop,Hackathon"
+  tags        String    @default("") // comma-separated, e.g. "Workshop,Talk"
   coverImage  String?
   coverAlt    String?
   published   Boolean   @default(false)
@@ -60,10 +60,24 @@ model Event {
   image       String?
   imageAlt    String?
   rsvpUrl     String?
+  isMeeting   Boolean  @default(false) // regular chapter meeting; shown as "next meeting" on Get Involved
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([startsAt])
+}
+
+/// Pending second factor after a correct password. The code is emailed; only its hash is stored.
+model LoginChallenge {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Officer {

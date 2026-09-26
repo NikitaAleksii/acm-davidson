@@ -10,6 +10,14 @@ export function getUpcomingEvents(limit?: number) {
   });
 }
 
+/** The soonest upcoming event flagged as a regular chapter meeting. */
+export function getNextMeeting() {
+  return db.event.findFirst({
+    where: { isMeeting: true, startsAt: { gte: new Date() } },
+    orderBy: { startsAt: "asc" },
+  });
+}
+
 export function getPastEvents(limit?: number) {
   return db.event.findMany({
     where: { startsAt: { lt: new Date() } },

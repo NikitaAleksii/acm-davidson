@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Events",
-  description: "Upcoming and past ACM Davidson events: workshops, hackathons, talks, and socials.",
-  openGraph: { title: "ACM Davidson events", description: "Workshops, hackathons, talks, and socials.", url: "/events" },
+  description: "Upcoming and past ACM Davidson events: meetings, workshops, talks, and socials.",
+  openGraph: { title: "ACM Davidson events", description: "Meetings, workshops, talks, and socials.", url: "/events" },
 };
 
 export default async function EventsPage() {
@@ -17,7 +17,7 @@ export default async function EventsPage() {
 
   return (
     <>
-      <PageHeader title="Events" intro="Workshops, hackathons, talks, and socials. Everyone is welcome." />
+      <PageHeader title="Events" intro="Meetings, workshops, talks, and socials. Everyone is welcome." />
       <Container className="py-12">
         <section aria-labelledby="upcoming">
           <SectionTitle title="Upcoming" />

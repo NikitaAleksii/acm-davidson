@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { CalendarDays, Mail, MapPin, Users } from "lucide-react";
 import { Instagram } from "@/components/brand-icons";
 import { site } from "@/lib/site";
-import { getUpcomingEvents } from "@/lib/queries";
-import { formatEventRange } from "@/lib/utils";
+import { getNextMeeting, getUpcomingEvents } from "@/lib/queries";
+import { formatEventRange, formatLongDate, formatTime } from "@/lib/utils";
 import { ButtonLink, Card, Container, PageHeader } from "@/components/ui";
 import { ContactForm, SubscribeForm } from "@/components/forms";
 import Link from "next/link";
@@ -18,13 +18,13 @@ export const metadata: Metadata = {
 };
 
 export default async function GetInvolvedPage() {
-  const [nextEvent] = await getUpcomingEvents(1);
+  const [[nextEvent], meeting] = await Promise.all([getUpcomingEvents(1), getNextMeeting()]);
 
   const steps = [
     {
       Icon: Users,
       title: "Join the chapter on WildcatSync",
-      body: "It takes a minute and puts you on our official roster. No dues.",
+      body: "It takes a minute and puts you on our official roster.",
       action: (
         <ButtonLink href={site.joinUrl} external className="mt-3">
           Join on WildcatSync
@@ -85,22 +85,43 @@ export default async function GetInvolvedPage() {
       <section className="border-t border-default bg-surface-muted py-12">
         <Container className="grid gap-10 lg:grid-cols-2">
           <div>
-            <h2 className="font-display text-2xl font-bold tracking-tight">Meetings</h2>
+            <h2 className="font-display text-2xl font-bold tracking-tight">Next meeting</h2>
+            {meeting ? (
+              <p className="mt-2 text-muted">
+                <Link href={`/events/${meeting.slug}`} className="font-semibold text-fg hover:underline">
+                  {meeting.title}
+                </Link>
+              </p>
+            ) : (
+              <p className="mt-2 text-muted">
+                The next meeting hasn&apos;t been scheduled yet. Join the mailing list or follow us on
+                Instagram and we&apos;ll let you know.
+              </p>
+            )}
             <dl className="mt-4 space-y-3">
-              <div className="flex gap-3">
-                <CalendarDays size={20} aria-hidden className="mt-0.5 shrink-0 text-brand-600" />
-                <div>
-                  <dt className="font-semibold">When</dt>
-                  <dd className="text-muted">{site.meeting.when}</dd>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <MapPin size={20} aria-hidden className="mt-0.5 shrink-0 text-brand-600" />
-                <div>
-                  <dt className="font-semibold">Where</dt>
-                  <dd className="text-muted">{site.meeting.where}</dd>
-                </div>
-              </div>
+              {meeting && (
+                <>
+                  <div className="flex gap-3">
+                    <CalendarDays size={20} aria-hidden className="mt-0.5 shrink-0 text-brand-600" />
+                    <div>
+                      <dt className="font-semibold">When</dt>
+                      <dd className="text-muted">
+                        <time dateTime={meeting.startsAt.toISOString()}>
+                          {formatLongDate(meeting.startsAt)} at {formatTime(meeting.startsAt)}
+                          {meeting.endsAt && ` – ${formatTime(meeting.endsAt)}`}
+                        </time>
+                      </dd>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <MapPin size={20} aria-hidden className="mt-0.5 shrink-0 text-brand-600" />
+                    <div>
+                      <dt className="font-semibold">Where</dt>
+                      <dd className="text-muted">{meeting.location}</dd>
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="flex gap-3">
                 <Mail size={20} aria-hidden className="mt-0.5 shrink-0 text-brand-600" />
                 <div>
@@ -113,6 +134,13 @@ export default async function GetInvolvedPage() {
                 </div>
               </div>
             </dl>
+            {meeting && (
+              <div className="mt-5">
+                <ButtonLink href={`/events/${meeting.slug}/calendar.ics`} variant="secondary">
+                  Add to calendar
+                </ButtonLink>
+              </div>
+            )}
             <p className="mt-6 text-sm text-muted">
               Questions about accessibility or accommodations for an event?{" "}
               <Link href="/contact" className="underline">

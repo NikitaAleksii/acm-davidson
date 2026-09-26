@@ -17,7 +17,7 @@ const pillars = [
   },
   {
     title: "Build",
-    body: "Hackathons, project nights, and open-source collaborations. Ship something with friends, then show it off.",
+    body: "Project nights and open-source collaborations. Ship something with friends, then show it off.",
   },
   {
     title: "Connect",
@@ -42,7 +42,7 @@ export default function AboutPage() {
             research project, there&apos;s a seat for you.
           </p>
           <p>
-            We host workshops, run hackathons, invite speakers, and organize socials throughout the
+            We host workshops, invite speakers, and organize socials throughout the
             year. We also connect members with each other and with alumni working in tech.
           </p>
 
@@ -62,8 +62,7 @@ export default function AboutPage() {
 
           <h2>Who can join?</h2>
           <p>
-            Any Davidson student. No prerequisites, no dues for chapter membership, no CS major
-            required. Join the chapter on WildcatSync and come to the next event.
+            Any Davidson student. No prerequisites and no CS major required. Join the chapter on WildcatSync and come to the next event.
           </p>
         </div>
 

@@ -78,6 +78,22 @@ export function EventForm({ event }: { event?: Event }) {
         </div>
       </div>
 
+      <div className="flex items-start gap-2 rounded-lg border border-default p-4">
+        <input
+          id="isMeeting"
+          name="isMeeting"
+          type="checkbox"
+          defaultChecked={event?.isMeeting ?? false}
+          className="mt-1 h-4 w-4 accent-brand-600"
+        />
+        <div>
+          <Label htmlFor="isMeeting" className="mb-0">
+            This is a regular chapter meeting
+          </Label>
+          <Help>The soonest upcoming meeting is shown as “Next meeting” on the Get Involved page.</Help>
+        </div>
+      </div>
+
       <div>
         <Label htmlFor="slug">URL slug</Label>
         <Input id="slug" name="slug" defaultValue={event?.slug ?? ""} placeholder="auto-generated from title" />

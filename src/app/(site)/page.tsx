@@ -7,6 +7,7 @@ import { formatEventRange, truncate } from "@/lib/utils";
 import { ButtonLink, Card, Container, EmptyState, SectionTitle } from "@/components/ui";
 import { PostCard } from "@/components/cards";
 import { SubscribeForm } from "@/components/forms";
+import { HeroBlobs } from "@/components/hero-blobs";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,7 @@ export default async function HomePage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-ink text-white">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rotate-45 rounded-3xl bg-brand-600/30 blur-2xl"
-        />
+        <HeroBlobs />
         <Container className="relative grid items-center gap-10 py-20 sm:py-28 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-brand-400">
@@ -32,7 +30,7 @@ export default async function HomePage() {
             </h1>
             <p className="mt-5 max-w-xl text-lg text-gray-300 sm:text-xl">{site.tagline}</p>
             <p className="mt-3 max-w-xl text-gray-400">
-              Workshops, hackathons, tech talks, and a friendly community for anyone curious about
+              Workshops, tech talks, socials, and a friendly community for anyone curious about
               computing. All majors and experience levels welcome.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -149,7 +147,7 @@ export default async function HomePage() {
           <div>
             <h2 className="font-display text-2xl font-bold tracking-tight">Stay in the loop</h2>
             <p className="mt-2 text-muted">
-              Get a short email when we announce workshops, hackathons, and speakers. Unsubscribe any
+              Get a short email when we announce meetings, workshops, and speakers. Unsubscribe any
               time by replying.
             </p>
           </div>

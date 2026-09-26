@@ -5,13 +5,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
+  createLoginChallenge,
   createSession,
   destroyAllSessions,
   destroyCurrentSession,
   getCurrentUser,
   requireAdmin,
+  verifyLoginChallenge,
   verifyPassword,
 } from "@/lib/auth";
+import { sendLoginCode } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { fromDateTimeLocal, joinTags, slugify } from "@/lib/utils";
@@ -69,10 +72,44 @@ export async function login(_prev: FormState, formData: FormData): Promise<FormS
   const password = str(formData, "password");
   const next = str(formData, "next");
   const user = await db.user.findUnique({ where: { email } });
-  const valid = user ? await verifyPassword(password, user.passwordHash) : false;
+  // verifyPassword runs bcrypt even when the user is unknown (constant-time-ish).
+  const valid = await verifyPassword(password, user?.passwordHash);
   if (!user || !valid) {
     return { ok: false, message: "Incorrect email or password." };
   }
+
+  // Password OK. Second step: email a one-time code and ask for it.
+  const code = await createLoginChallenge(user.id);
+  const sent = await sendLoginCode(user.email, code).catch((err) => {
+    console.error("[login] failed to send code", err);
+    return false;
+  });
+  if (!sent) {
+    return { ok: false, message: "We couldn't send the sign-in code email. Ask the webmaster to check SMTP settings." };
+  }
+  const safeNext = next.startsWith("/admin") ? next : "/admin";
+  redirect(`/admin/login/verify?next=${encodeURIComponent(safeNext)}`);
+}
+
+export async function verifyCode(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ip = await clientIp();
+  if (!rateLimit(`verify:${ip}`, 20, 15 * 60 * 1000)) {
+    return { ok: false, message: "Too many attempts. Try again in 15 minutes." };
+  }
+  const code = str(formData, "code");
+  const next = str(formData, "next");
+  const result = await verifyLoginChallenge(code);
+  if (!result.ok) {
+    const messages = {
+      missing: "Your sign-in attempt expired. Please start again.",
+      expired: "That code has expired. Please sign in again to get a new one.",
+      locked: "Too many wrong codes. Please sign in again to get a new one.",
+      wrong: "That code isn't right. Check the email and try again.",
+    } as const;
+    return { ok: false, message: messages[result.reason], errors: result.reason === "wrong" ? { code: "Incorrect code" } : { restart: "1" } };
+  }
+  const user = await db.user.findUnique({ where: { id: result.userId } });
+  if (!user) return { ok: false, message: "Account not found." };
   await createSession(user.id);
   await logActivity({ ...user, sessionId: "" }, "login", "session", `${user.name} signed in`);
   redirect(next.startsWith("/admin") ? next : "/admin");
@@ -241,6 +278,7 @@ export async function saveEvent(_prev: FormState, formData: FormData): Promise<F
     image: d.image || null,
     imageAlt: d.image ? d.imageAlt || null : null,
     rsvpUrl: d.rsvpUrl || null,
+    isMeeting: str(formData, "isMeeting") === "on",
   };
   const event = id
     ? await db.event.update({ where: { id }, data })

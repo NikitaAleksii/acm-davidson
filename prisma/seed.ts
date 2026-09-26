@@ -46,6 +46,7 @@ async function main() {
     create: {
       slug: "welcome-meeting",
       title: "Welcome Meeting & Pizza",
+      isMeeting: true,
       description:
         "Kick off the semester with ACM Davidson! Meet the officers, hear what we have planned, and grab some pizza.\n\nAll majors and experience levels welcome. No need to RSVP, just show up.",
       startsAt: inDays(7),
@@ -68,14 +69,14 @@ async function main() {
     },
   });
   await db.event.upsert({
-    where: { slug: "spring-hackathon-recap" },
+    where: { slug: "spring-social-recap" },
     update: {},
     create: {
-      slug: "spring-hackathon-recap",
-      title: "Spring Hackathon",
-      description: "24 hours, 40 students, way too much caffeine. Thanks to everyone who came out!",
-      startsAt: inDays(-90, 10),
-      endsAt: inDays(-89, 10),
+      slug: "spring-social-recap",
+      title: "End-of-Semester Social",
+      description: "Board games, snacks, and a look back at the semester. Thanks to everyone who came out!",
+      startsAt: inDays(-90, 18),
+      endsAt: inDays(-90, 20),
       location: "Wall Center",
     },
   });

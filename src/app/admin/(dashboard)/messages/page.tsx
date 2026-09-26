@@ -3,6 +3,7 @@ import { formatDateTime } from "@/lib/utils";
 import { deleteMessage, setMessageRead } from "@/actions/admin";
 import { EmptyState, SectionTitle } from "@/components/ui";
 import { ConfirmButton } from "@/components/admin/confirm-button";
+import { CopyButton } from "@/components/admin/copy-button";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +17,8 @@ export default async function AdminMessages() {
     <div>
       <SectionTitle as="h1" title={`Messages${unread ? ` (${unread} unread)` : ""}`} />
       <p className="mb-6 text-sm text-muted">
-        Contact-form submissions. Each one is also emailed to the chapter address when SMTP is configured.
+        Contact-form submissions. Copy the sender&apos;s address to reply from Outlook. Each message is
+        also emailed to the chapter address when SMTP is configured.
       </p>
       {messages.length === 0 ? (
         <EmptyState title="No messages yet" />
@@ -31,26 +33,23 @@ export default async function AdminMessages() {
               )}
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-semibold">
-                  {!m.read && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-brand-600" aria-label="Unread" />}
-                  {m.name}{" "}
-                  <a href={`mailto:${m.email}`} className="font-normal text-brand-600 hover:underline">
-                    {m.email}
-                  </a>
-                  {m.classYear && <span className="ml-2 text-xs text-muted">· {m.classYear}</span>}
-                </p>
+                <div>
+                  <p className="font-semibold">
+                    {!m.read && <span className="mr-2 inline-block h-2 w-2 rounded-full bg-brand-600" aria-label="Unread" />}
+                    {m.name}
+                    {m.classYear && <span className="ml-2 text-xs font-normal text-muted">· {m.classYear}</span>}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-2 text-sm">
+                    <span className="select-all font-mono">{m.email}</span>
+                    <CopyButton text={m.email} label="Copy email" />
+                  </p>
+                </div>
                 <time dateTime={m.createdAt.toISOString()} className="text-xs text-muted">
                   {formatDateTime(m.createdAt)}
                 </time>
               </div>
               <p className="mt-3 whitespace-pre-wrap text-sm">{m.body}</p>
               <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-                <a
-                  href={`mailto:${m.email}?subject=${encodeURIComponent("Re: your message to ACM Davidson")}`}
-                  className="font-semibold text-brand-600 hover:underline"
-                >
-                  Reply by email
-                </a>
                 <form action={setMessageRead}>
                   <input type="hidden" name="id" value={m.id} />
                   <input type="hidden" name="read" value={m.read ? "false" : "true"} />

@@ -24,7 +24,12 @@ npm run db:seed             # creates the admin user + a little sample content
 npm run dev                 # http://localhost:3000
 ```
 
-Sign in at `/admin/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`.
+Sign in at `/admin/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`. After the
+password, the site emails a 6-digit one-time code to `OTP_EMAIL` (or the admin's own address
+if `OTP_EMAIL` is empty) and asks for it before creating a session. **This means SMTP must be
+configured for admin sign-in to work in production.** In development without SMTP the code is
+printed to the terminal instead.
+
 Change the password right away:
 
 ```bash
@@ -44,10 +49,11 @@ SEED_SAMPLE_CONTENT=false npm run db:seed
 
 **Public site**
 
-- Home: hero with "Join us", next upcoming event, three latest posts, mailing-list signup
+- Home: hero with cursor-reactive floating blobs, "Join us", next upcoming event, three latest
+  posts, mailing-list signup
 - About, Events (upcoming + automatic past archive, `.ics` add-to-calendar), Posts (search by
   title/text/tag, tag filters), Team (current officers, past officers grouped by academic year),
-  Get Involved (join steps, meeting info, mailing list, contact form), Contact
+  Get Involved (join steps, next meeting date/place, mailing list, contact form), Contact
 - Light/dark mode, sticky navbar with mobile hamburger menu, custom 404
 - SEO: per-page titles/descriptions, Open Graph + Twitter cards, `robots.txt`, `sitemap.xml`,
   schema.org Event JSON-LD
@@ -58,15 +64,41 @@ SEED_SAMPLE_CONTENT=false npm run db:seed
 **Admin dashboard** (`/admin`)
 
 - Posts: Markdown editor with live preview, full-page preview, drafts vs. published, tags
-- Events: date/time (Eastern), location, image, RSVP link; past events archive automatically
+- Events: date/time (Eastern), location, image, RSVP link; past events archive automatically.
+  Tick "This is a regular chapter meeting" and the soonest such event becomes the "Next
+  meeting" on the Get Involved page
 - Team: add/edit officers, reorder with arrows, archive individuals or a whole academic year
-- Messages: every contact-form submission (also emailed when SMTP is configured)
+- Messages: every contact-form submission with the sender's name, email (one-click copy), and
+  class year so you can reply from Outlook (also emailed when SMTP is configured)
 - Subscribers: mailing list with CSV export
 - Activity log: who created/edited/deleted/published what, and when
 - Log out, and "log out all sessions"
 
 **Spam protection**: honeypot field, per-IP rate limiting on forms and login, and optional
 Cloudflare Turnstile (set both `TURNSTILE_*` keys in `.env`).
+
+## Security notes
+
+- Passwords are hashed with bcrypt (cost 12) and never logged, returned, or rendered. Login
+  compares against a dummy hash when the email is unknown so response time doesn't reveal
+  which emails exist.
+- Admin sign-in is two-step: password, then a 6-digit code emailed to `OTP_EMAIL`. Only a
+  bcrypt hash of the code is stored; codes expire after 10 minutes and lock after 5 wrong
+  guesses. Codes are single-use.
+- Sessions are random 256-bit tokens stored hashed (SHA-256) in the database, in an
+  `httpOnly`, `SameSite=Lax` cookie marked `Secure` in production. "Log out all sessions"
+  deletes every session row for the user.
+- Rate limits: 10 password attempts and 20 code attempts per IP per 15 minutes; 5 contact
+  messages per IP per hour.
+- Security headers: Content-Security-Policy, `frame-ancestors 'none'`, `X-Content-Type-Options`,
+  Referrer-Policy, HSTS, and `Cache-Control: no-store` on all admin pages.
+- Uploads: admin-only, MIME- and size-checked, stored under a server-generated name; the
+  serving route only accepts that exact name pattern (no path traversal).
+- The `next` parameter after login only accepts `/admin...` paths (no open redirects).
+- CSV export escapes cells and neutralises spreadsheet formula injection.
+- Server Actions are protected by Next.js's Origin/Host check (CSRF). All user content is
+  rendered through React (escaped); Markdown never renders raw HTML.
+- Keep `.env` out of git (it is ignored) and deploy behind HTTPS.
 
 ## Configuration
 

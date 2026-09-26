@@ -3,7 +3,7 @@ export const site = {
   fullName: "ACM Davidson College Student Chapter",
   tagline: "Davidson College's home for people who love computing.",
   description:
-    "The Davidson College student chapter of the Association for Computing Machinery (ACM). Workshops, hackathons, talks, and a community for everyone interested in computer science.",
+    "The Davidson College student chapter of the Association for Computing Machinery (ACM). Workshops, talks, socials, and a community for everyone interested in computer science.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   email: process.env.CHAPTER_EMAIL ?? "acm@davidson.edu",
   joinUrl: "https://wildcatsync.davidson.edu/organization/acm",
@@ -15,11 +15,6 @@ export const site = {
   },
   davidsonUrl: "https://www.davidson.edu",
   acmUrl: "https://www.acm.org",
-  // Regular meeting info shown on Get Involved. Update as needed.
-  meeting: {
-    when: "Check our events page or Instagram for this semester's schedule",
-    where: "Chambers Building, Davidson College",
-  },
   timeZone: "America/New_York",
 } as const;
 
@@ -33,7 +28,7 @@ export const nav = [
   { href: "/contact", label: "Contact" },
 ] as const;
 
-export const POST_TAGS = ["Workshop", "Hackathon", "Talk", "Social", "News", "Project"] as const;
+export const POST_TAGS = ["Workshop", "Talk", "Social", "News", "Project"] as const;
 
 export const CLASS_YEARS = (() => {
   const now = new Date();

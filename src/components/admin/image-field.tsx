@@ -15,7 +15,7 @@ type Props = {
 
 /**
  * Image picker: upload a file (stored under /uploads) or paste an https URL.
- * Alt text is required whenever an image is set; the server enforces this too.
+ * Alt text is optional but recommended for screen-reader users.
  */
 export function ImageField({ name, altName, label = "Image", defaultUrl, defaultAlt, errors = {} }: Props) {
   const [url, setUrl] = useState(defaultUrl ?? "");
@@ -100,13 +100,12 @@ export function ImageField({ name, altName, label = "Image", defaultUrl, default
           </div>
           <div>
             <Label htmlFor={`${id}-alt`} className="text-xs">
-              Alt text {url && <span className="text-red-600">(required)</span>}
+              Alt text <span className="font-normal text-muted">(optional)</span>
             </Label>
             <Input
               id={`${id}-alt`}
               name={altName}
               defaultValue={defaultAlt ?? ""}
-              required={!!url}
               placeholder="Describe the image for screen readers"
               aria-invalid={!!errors[altName]}
             />

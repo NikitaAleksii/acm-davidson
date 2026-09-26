@@ -94,31 +94,33 @@ export function OfficerCard({ officer }: { officer: Officer }) {
     .join("")
     .toUpperCase();
   return (
-    <Card className="flex flex-col items-center p-6 text-center">
-      <div className="relative h-28 w-28 overflow-hidden rounded-full bg-brand-600 ring-4 ring-brand-100 dark:ring-brand-950">
+    <Card className="flex h-full flex-col overflow-hidden">
+      {/* Large portrait-style photo that fills the top of the card. */}
+      <div className="relative aspect-[4/5] w-full bg-brand-600">
         {officer.photo ? (
           <Image
             src={officer.photo}
-              unoptimized={isUpload(officer.photo)}
-            alt={officer.photoAlt ?? `Portrait of ${officer.name}`}
+            unoptimized={isUpload(officer.photo)}
+            alt={officer.photoAlt || `Photo of ${officer.name}`}
             fill
-            sizes="112px"
-            className="object-cover"
+            sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
+            className="object-cover object-top"
           />
         ) : (
           <span
             aria-hidden
-            className="flex h-full w-full items-center justify-center font-display text-3xl font-bold text-white"
+            className="flex h-full w-full items-center justify-center font-display text-6xl font-bold text-white"
           >
             {initials}
           </span>
         )}
       </div>
-      <h3 className="mt-4 font-display text-lg font-bold">{officer.name}</h3>
+      <div className="flex flex-1 flex-col p-5">
+      <h3 className="font-display text-xl font-bold">{officer.name}</h3>
       <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">{officer.role}</p>
       {officer.bio && <p className="mt-2 text-sm text-muted">{officer.bio}</p>}
       {(officer.linkedin || officer.github) && (
-        <ul className="mt-4 flex gap-2">
+        <ul className="mt-auto flex gap-2 pt-4">
           {officer.linkedin && (
             <li>
               <a
@@ -147,6 +149,7 @@ export function OfficerCard({ officer }: { officer: Officer }) {
           )}
         </ul>
       )}
+      </div>
     </Card>
   );
 }

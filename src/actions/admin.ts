@@ -274,10 +274,6 @@ const postSchema = z
     coverImage: optionalUrl,
     coverAlt: z.string().trim().max(300).optional().or(z.literal("")),
     authorName: z.string().trim().max(100).optional().or(z.literal("")),
-  })
-  .refine((d) => !d.coverImage || (d.coverAlt && d.coverAlt.length > 0), {
-    message: "Alt text is required when a cover image is set",
-    path: ["coverAlt"],
   });
 
 export async function savePost(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -370,10 +366,6 @@ const eventSchema = z
       .refine((v) => v === "" || /^https?:\/\//.test(v), "Must be an http(s) URL")
       .optional()
       .or(z.literal("")),
-  })
-  .refine((d) => !d.image || (d.imageAlt && d.imageAlt.length > 0), {
-    message: "Alt text is required when an image is set",
-    path: ["imageAlt"],
   });
 
 export async function saveEvent(_prev: FormState, formData: FormData): Promise<FormState> {
@@ -455,10 +447,6 @@ const officerSchema = z
       .optional()
       .or(z.literal("")),
     academicYear: z.string().trim().regex(/^\d{4}-\d{4}$/, "Use the format 2025-2026"),
-  })
-  .refine((d) => !d.photo || (d.photoAlt && d.photoAlt.length > 0), {
-    message: "Alt text is required when a photo is set",
-    path: ["photoAlt"],
   });
 
 export async function saveOfficer(_prev: FormState, formData: FormData): Promise<FormState> {

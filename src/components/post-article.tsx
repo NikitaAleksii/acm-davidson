@@ -40,16 +40,15 @@ export function PostArticle({ post, preview = false }: { post: Post; preview?: b
       </div>
       <Container className="max-w-3xl py-10">
         {post.coverImage && (
-          <figure className="mb-8">
+          <figure className="relative mb-8 aspect-[16/9] w-full overflow-hidden rounded-xl border border-default bg-surface-muted">
             <Image
               src={post.coverImage}
               unoptimized={isUpload(post.coverImage)}
               alt={post.coverAlt ?? ""}
-              width={1200}
-              height={675}
+              fill
               priority
               sizes="(min-width: 768px) 768px, 100vw"
-              className="h-auto w-full rounded-xl border border-default"
+              className="object-cover"
             />
           </figure>
         )}

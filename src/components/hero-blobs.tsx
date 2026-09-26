@@ -160,13 +160,24 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
       target.y = clientY - rect.top;
       target.active = true;
     }
-    const onMove = (e: PointerEvent) => toLocal(e.clientX, e.clientY);
+    let release = 0;
+    const onMove = (e: PointerEvent) => {
+      clearTimeout(release);
+      toLocal(e.clientX, e.clientY);
+    };
     const onLeave = () => {
       target.active = false;
     };
     const onTouch = (e: TouchEvent) => {
       const touch = e.touches[0];
-      if (touch) toLocal(touch.clientX, touch.clientY);
+      if (!touch) return;
+      clearTimeout(release);
+      toLocal(touch.clientX, touch.clientY);
+    };
+    // A tap has no "leave": keep pushing for a moment, then let the blobs drift home.
+    const onTouchEnd = () => {
+      clearTimeout(release);
+      release = window.setTimeout(onLeave, 700);
     };
 
     resize();
@@ -175,8 +186,10 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
     ro.observe(parent);
     parent.addEventListener("pointermove", onMove);
     parent.addEventListener("pointerleave", onLeave);
+    parent.addEventListener("touchstart", onTouch, { passive: true });
     parent.addEventListener("touchmove", onTouch, { passive: true });
-    parent.addEventListener("touchend", onLeave);
+    parent.addEventListener("touchend", onTouchEnd);
+    parent.addEventListener("touchcancel", onTouchEnd);
 
     const onVisibility = () => {
       if (document.hidden) cancelAnimationFrame(raf);
@@ -192,8 +205,11 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
       ro.disconnect();
       parent.removeEventListener("pointermove", onMove);
       parent.removeEventListener("pointerleave", onLeave);
+      parent.removeEventListener("touchstart", onTouch);
       parent.removeEventListener("touchmove", onTouch);
-      parent.removeEventListener("touchend", onLeave);
+      parent.removeEventListener("touchend", onTouchEnd);
+      parent.removeEventListener("touchcancel", onTouchEnd);
+      clearTimeout(release);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [count]);

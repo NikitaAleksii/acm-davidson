@@ -95,15 +95,14 @@ export default async function EventPage({ params }: Props) {
       <Container className="grid gap-10 py-12 lg:grid-cols-[1fr_360px]">
         <Markdown content={event.description} className="max-w-none" />
         {event.image && (
-          <figure className="lg:order-first lg:col-start-2 lg:row-start-1">
+          <figure className="relative aspect-[16/9] w-full overflow-hidden rounded-xl border border-default bg-surface-muted lg:order-first lg:col-start-2 lg:row-start-1">
             <Image
               src={event.image}
               unoptimized={isUpload(event.image)}
               alt={event.imageAlt ?? ""}
-              width={720}
-              height={480}
+              fill
               sizes="(min-width: 1024px) 360px, 100vw"
-              className="h-auto w-full rounded-xl border border-default"
+              className="object-cover"
             />
           </figure>
         )}

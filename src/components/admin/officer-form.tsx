@@ -71,7 +71,7 @@ export function OfficerForm({ officer, defaultYear }: { officer?: Officer; defau
         </div>
       </div>
 
-      <ImageField name="photo" altName="photoAlt" label="Photo" defaultUrl={officer?.photo} defaultAlt={officer?.photoAlt} errors={errors} />
+      <ImageField name="photo" altName="photoAlt" label="Photo" aspect={4 / 5} defaultUrl={officer?.photo} defaultAlt={officer?.photoAlt} errors={errors} />
 
       {state && !state.ok && <Alert kind="error">{state.message}</Alert>}
 

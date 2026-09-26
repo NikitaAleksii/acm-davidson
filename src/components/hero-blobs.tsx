@@ -3,19 +3,33 @@
 import { useEffect, useRef } from "react";
 
 type Blob = {
+  hx: number; // home position (fraction of width/height, so it survives resizes)
+  hy: number;
   x: number;
   y: number;
   vx: number;
   vy: number;
-  r: number;
+  r: number; // radius as a fraction of min(width, height)
   hue: number;
   alpha: number;
+  phase: number; // for the gentle idle wander
+  speed: number;
 };
 
+// Tuning knobs. Everything is per-frame at ~60fps and scaled by dt otherwise.
+const SPRING = 0.0045; // pull back toward home
+const DAMPING = 0.9; // velocity retained each frame (lower = smoother, less bouncy)
+const REPEL_STRENGTH = 1.1; // cursor push
+const REPEL_REACH = 170; // px beyond the blob's edge where the cursor still pushes
+const WANDER = 0.035; // idle drift radius, as a fraction of min(width, height)
+const POINTER_EASE = 0.14; // how quickly the effective cursor position follows the real one
+
 /**
- * Soft floating blobs behind the hero. They drift on their own and are pushed
- * around by the cursor (or a touch). Honors prefers-reduced-motion by rendering
- * a static frame. Purely decorative: aria-hidden, no pointer capture.
+ * Soft floating blobs behind the hero. Each blob drifts gently around a home
+ * position, gets pushed away by the cursor (or a touch), and springs back to
+ * where it started once the cursor leaves. Honors prefers-reduced-motion by
+ * rendering a single static frame. Decorative only: aria-hidden, no pointer
+ * capture.
  */
 export function HeroBlobs({ count = 7 }: { count?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -29,78 +43,110 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let width = 0;
     let height = 0;
-    let dpr = 1;
     let raf = 0;
-    const pointer = { x: -9999, y: -9999, active: false };
+    let last = performance.now();
+    let t = 0;
+    // Real pointer and the eased pointer the physics actually uses.
+    const target = { x: -9999, y: -9999, active: false };
+    const pointer = { x: -9999, y: -9999, strength: 0 };
     const blobs: Blob[] = [];
-
     const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+    // Seeded home positions spread across the hero.
+    for (let i = 0; i < count; i++) {
+      const hx = rand(0.05, 0.95);
+      const hy = rand(0.1, 0.9);
+      blobs.push({
+        hx,
+        hy,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        r: rand(0.14, 0.3),
+        hue: rand(345, 358),
+        alpha: rand(0.45, 0.7),
+        phase: rand(0, Math.PI * 2),
+        speed: rand(0.25, 0.5),
+      });
+    }
 
     function resize() {
       const rect = canvas!.getBoundingClientRect();
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const first = width === 0;
       width = rect.width;
       height = rect.height;
       canvas!.width = Math.floor(width * dpr);
       canvas!.height = Math.floor(height * dpr);
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (blobs.length === 0) {
-        for (let i = 0; i < count; i++) {
-          blobs.push({
-            x: rand(0, width),
-            y: rand(0, height),
-            vx: rand(-0.25, 0.25),
-            vy: rand(-0.25, 0.25),
-            r: rand(Math.min(width, height) * 0.12, Math.min(width, height) * 0.28),
-            hue: rand(345, 358),
-            alpha: rand(0.45, 0.7),
-          });
+      if (first) {
+        for (const b of blobs) {
+          b.x = b.hx * width;
+          b.y = b.hy * height;
         }
       }
     }
 
-    function step() {
-      ctx!.clearRect(0, 0, width, height);
-      ctx!.globalCompositeOperation = "lighter";
-      for (const b of blobs) {
-        if (!reduceMotion) {
-          // Cursor repulsion: blobs glide away from the pointer.
-          if (pointer.active) {
+    function step(now: number) {
+      // Normalise to 60fps so speed doesn't depend on refresh rate.
+      const dt = Math.min((now - last) / (1000 / 60), 3);
+      last = now;
+      t += dt / 60;
+      const base = Math.min(width, height);
+
+      if (!reduceMotion) {
+        // Ease the pointer toward its real position, and fade its influence in/out.
+        const strengthTarget = target.active ? 1 : 0;
+        pointer.strength += (strengthTarget - pointer.strength) * POINTER_EASE * dt;
+        if (target.active) {
+          if (pointer.x < -9000) {
+            pointer.x = target.x;
+            pointer.y = target.y;
+          }
+          pointer.x += (target.x - pointer.x) * POINTER_EASE * dt;
+          pointer.y += (target.y - pointer.y) * POINTER_EASE * dt;
+        }
+
+        for (const b of blobs) {
+          const r = b.r * base;
+          // Idle wander: slow figure-eight around home.
+          const wx = b.hx * width + Math.cos(t * b.speed + b.phase) * WANDER * base;
+          const wy = b.hy * height + Math.sin(t * b.speed * 0.8 + b.phase * 1.3) * WANDER * base;
+          let ax = (wx - b.x) * SPRING;
+          let ay = (wy - b.y) * SPRING;
+
+          if (pointer.strength > 0.01) {
             const dx = b.x - pointer.x;
             const dy = b.y - pointer.y;
             const dist = Math.hypot(dx, dy) || 1;
-            const reach = b.r + 160;
+            const reach = r + REPEL_REACH;
             if (dist < reach) {
-              const force = ((reach - dist) / reach) * 0.9;
-              b.vx += (dx / dist) * force;
-              b.vy += (dy / dist) * force;
+              const k = 1 - dist / reach;
+              const force = k * k * REPEL_STRENGTH * pointer.strength;
+              ax += (dx / dist) * force;
+              ay += (dy / dist) * force;
             }
           }
-          b.x += b.vx;
-          b.y += b.vy;
-          // Gentle friction so pushes settle back into a drift.
-          b.vx *= 0.97;
-          b.vy *= 0.97;
-          const minSpeed = 0.12;
-          const speed = Math.hypot(b.vx, b.vy);
-          if (speed < minSpeed) {
-            const ang = Math.atan2(b.vy, b.vx) + rand(-0.4, 0.4);
-            b.vx = Math.cos(ang) * minSpeed;
-            b.vy = Math.sin(ang) * minSpeed;
-          }
-          // Wrap around the edges.
-          if (b.x < -b.r) b.x = width + b.r;
-          if (b.x > width + b.r) b.x = -b.r;
-          if (b.y < -b.r) b.y = height + b.r;
-          if (b.y > height + b.r) b.y = -b.r;
+
+          b.vx = (b.vx + ax * dt) * Math.pow(DAMPING, dt);
+          b.vy = (b.vy + ay * dt) * Math.pow(DAMPING, dt);
+          b.x += b.vx * dt;
+          b.y += b.vy * dt;
         }
-        const g = ctx!.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+      }
+
+      ctx!.clearRect(0, 0, width, height);
+      ctx!.globalCompositeOperation = "lighter";
+      for (const b of blobs) {
+        const r = b.r * base;
+        const g = ctx!.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
         g.addColorStop(0, `hsla(${b.hue}, 85%, 45%, ${b.alpha})`);
         g.addColorStop(0.6, `hsla(${b.hue}, 85%, 40%, ${b.alpha * 0.35})`);
         g.addColorStop(1, `hsla(${b.hue}, 85%, 35%, 0)`);
         ctx!.fillStyle = g;
         ctx!.beginPath();
-        ctx!.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx!.arc(b.x, b.y, r, 0, Math.PI * 2);
         ctx!.fill();
       }
       ctx!.globalCompositeOperation = "source-over";
@@ -110,21 +156,21 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
     const parent = canvas.parentElement ?? canvas;
     function toLocal(clientX: number, clientY: number) {
       const rect = canvas!.getBoundingClientRect();
-      pointer.x = clientX - rect.left;
-      pointer.y = clientY - rect.top;
-      pointer.active = true;
+      target.x = clientX - rect.left;
+      target.y = clientY - rect.top;
+      target.active = true;
     }
     const onMove = (e: PointerEvent) => toLocal(e.clientX, e.clientY);
     const onLeave = () => {
-      pointer.active = false;
+      target.active = false;
     };
     const onTouch = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t) toLocal(t.clientX, t.clientY);
+      const touch = e.touches[0];
+      if (touch) toLocal(touch.clientX, touch.clientY);
     };
 
     resize();
-    step();
+    raf = requestAnimationFrame(step);
     const ro = new ResizeObserver(resize);
     ro.observe(parent);
     parent.addEventListener("pointermove", onMove);
@@ -132,10 +178,12 @@ export function HeroBlobs({ count = 7 }: { count?: number }) {
     parent.addEventListener("touchmove", onTouch, { passive: true });
     parent.addEventListener("touchend", onLeave);
 
-    // Pause when the tab is hidden to save battery.
     const onVisibility = () => {
       if (document.hidden) cancelAnimationFrame(raf);
-      else if (!reduceMotion) raf = requestAnimationFrame(step);
+      else if (!reduceMotion) {
+        last = performance.now();
+        raf = requestAnimationFrame(step);
+      }
     };
     document.addEventListener("visibilitychange", onVisibility);
 

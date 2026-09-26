@@ -95,9 +95,24 @@ export async function verifyLoginChallenge(code: string): Promise<ChallengeResul
   return { ok: true, userId: challenge.userId };
 }
 
-export async function hasPendingChallenge() {
+/** Email address the pending code was sent to (masked for display), or null if no valid challenge. */
+export async function getPendingChallengeEmail(): Promise<string | null> {
   const cookieStore = await cookies();
-  return Boolean(cookieStore.get(CHALLENGE_COOKIE)?.value);
+  const token = cookieStore.get(CHALLENGE_COOKIE)?.value;
+  if (!token) return null;
+  const challenge = await db.loginChallenge.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: { user: { select: { email: true } } },
+  });
+  if (!challenge || challenge.expiresAt < new Date()) return null;
+  return maskEmail(challenge.user.email);
+}
+
+export function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  const shown = local.slice(0, 2);
+  return `${shown}${"•".repeat(Math.max(3, local.length - 2))}@${domain}`;
 }
 
 /** Creates a DB session and sets the cookie. Returns the user. */

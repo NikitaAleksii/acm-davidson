@@ -19,7 +19,7 @@ export default async function TeamPage() {
     <>
       <PageHeader
         title="Team"
-        intro="The students who keep ACM Davidson running. Want to help out? Officer elections happen every spring."
+        intro="The students who keep ACM Davidson running. Want to help out? Elections run every Fall."
       />
       <Container className="py-12">
         <section aria-labelledby="current-officers">

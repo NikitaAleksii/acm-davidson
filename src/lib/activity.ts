@@ -16,7 +16,7 @@ export type ActivityAction =
   | "logout_all"
   | "exported";
 
-export type EntityType = "post" | "event" | "officer" | "message" | "subscriber" | "session";
+export type EntityType = "post" | "event" | "officer" | "message" | "subscriber" | "session" | "admin";
 
 export async function logActivity(
   user: SessionUser | null,

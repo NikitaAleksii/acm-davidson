@@ -20,14 +20,13 @@ export function emailConfigured() {
 }
 
 /**
- * Emails a one-time sign-in code. Goes to OTP_EMAIL if set (a shared officer
- * inbox), otherwise to the admin's own address.
+ * Emails a one-time sign-in code to the admin's own address.
  * Returns true if sent. Without SMTP in development the code is printed to the
  * server log instead; in production the sign-in fails closed.
  */
 export async function sendLoginCode(to: string, code: string): Promise<boolean> {
   const t = transporter();
-  const recipient = process.env.OTP_EMAIL || to;
+  const recipient = to;
   const subject = `${code} is your ${site.name} admin sign-in code`;
   const text = [
     `Your one-time sign-in code for the ${site.name} admin dashboard is:`,
@@ -52,6 +51,27 @@ export async function sendLoginCode(to: string, code: string): Promise<boolean> 
     subject,
     text,
   });
+  return true;
+}
+
+/** Lets a newly added admin know an account exists for them (no password is included). */
+export async function sendAdminWelcome(to: string, name: string, addedBy: string): Promise<boolean> {
+  const t = transporter();
+  const subject = `You now have admin access to the ${site.name} website`;
+  const text = [
+    `Hi ${name},`,
+    "",
+    `${addedBy} added you as an admin on the ${site.name} website.`,
+    `Sign in at ${site.url}/admin/login with this email address and the password they gave you.`,
+    "Each time you sign in, a one-time code will be emailed to this address.",
+    "",
+    "Change your password from the Admins page after your first sign-in.",
+  ].join("\n");
+  if (!t) {
+    if (process.env.NODE_ENV !== "production") console.log(`[email] (no SMTP) welcome email for ${to} not sent`);
+    return false;
+  }
+  await t.sendMail({ from: process.env.SMTP_FROM ?? `ACM Davidson Website <${site.email}>`, to, subject, text });
   return true;
 }
 

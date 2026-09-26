@@ -15,8 +15,8 @@ function academicYear(date = new Date()) {
 }
 
 async function main() {
-  const email = (process.env.ADMIN_EMAIL ?? "admin@davidson.edu").toLowerCase();
-  const name = process.env.ADMIN_NAME ?? "ACM Admin";
+  const email = (process.env.ADMIN_EMAIL ?? "nialeksii@davidson.edu").toLowerCase();
+  const name = process.env.ADMIN_NAME ?? "Nikita";
   const password = process.env.ADMIN_PASSWORD ?? "change-me-now";
 
   const passwordHash = await bcrypt.hash(password, 12);

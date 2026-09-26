@@ -10,11 +10,12 @@ import {
   destroyAllSessions,
   destroyCurrentSession,
   getCurrentUser,
+  hashPassword,
   requireAdmin,
   verifyLoginChallenge,
   verifyPassword,
 } from "@/lib/auth";
-import { sendLoginCode } from "@/lib/email";
+import { sendAdminWelcome, sendLoginCode } from "@/lib/email";
 import { logActivity } from "@/lib/activity";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { fromDateTimeLocal, joinTags, slugify } from "@/lib/utils";
@@ -111,6 +112,7 @@ export async function verifyCode(_prev: FormState, formData: FormData): Promise<
   const user = await db.user.findUnique({ where: { id: result.userId } });
   if (!user) return { ok: false, message: "Account not found." };
   await createSession(user.id);
+  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await logActivity({ ...user, sessionId: "" }, "login", "session", `${user.name} signed in`);
   redirect(next.startsWith("/admin") ? next : "/admin");
 }
@@ -127,6 +129,77 @@ export async function logoutAll() {
   await logActivity(user, "logout_all", "session", `${user.name} signed out of all sessions`);
   await destroyAllSessions(user.id);
   redirect("/admin/login?all=1");
+}
+
+/* ---------- admin accounts ---------- */
+
+const passwordRule = z
+  .string()
+  .min(10, "Use at least 10 characters")
+  .max(200)
+  .refine((p) => !/^(.)\1+$/.test(p), "Choose a less predictable password");
+
+const adminSchema = z.object({
+  name: z.string().trim().min(2, "Name is required").max(100),
+  email: z.string().trim().email("Enter a valid email").max(200),
+  password: passwordRule,
+});
+
+export async function createAdmin(_prev: FormState, formData: FormData): Promise<FormState> {
+  const actor = await requireAdmin();
+  const parsed = adminSchema.safeParse({
+    name: str(formData, "name"),
+    email: str(formData, "email").toLowerCase(),
+    password: str(formData, "password"),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: "Please fix the highlighted fields.", errors: fieldErrors(parsed.error) };
+  }
+  const { name, email, password } = parsed.data;
+  if (await db.user.findUnique({ where: { email } })) {
+    return { ok: false, message: "An admin with that email already exists.", errors: { email: "Already in use" } };
+  }
+  const user = await db.user.create({ data: { name, email, passwordHash: await hashPassword(password) } });
+  await logActivity(actor, "created", "admin", `added admin ${user.name} <${user.email}>`, user.id);
+  await sendAdminWelcome(user.email, user.name, actor.name).catch((err) => {
+    console.error("[admin] welcome email failed", err);
+    return false;
+  });
+  revalidatePath("/admin/admins");
+  return { ok: true, message: `${user.name} can now sign in with ${user.email}. Share the password with them privately.` };
+}
+
+export async function deleteAdmin(formData: FormData) {
+  const actor = await requireAdmin();
+  const id = str(formData, "id");
+  if (id === actor.id) return; // can't remove yourself
+  const total = await db.user.count();
+  if (total <= 1) return; // keep at least one admin
+  const user = await db.user.delete({ where: { id } }).catch(() => null);
+  if (!user) return;
+  await logActivity(actor, "deleted", "admin", `removed admin ${user.name} <${user.email}>`, user.id);
+  revalidatePath("/admin/admins");
+}
+
+export async function changeOwnPassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const actor = await requireAdmin();
+  const current = str(formData, "currentPassword");
+  const parsed = z
+    .object({ password: passwordRule, confirm: z.string() })
+    .refine((d) => d.password === d.confirm, { message: "Passwords don't match", path: ["confirm"] })
+    .safeParse({ password: str(formData, "password"), confirm: str(formData, "confirm") });
+  if (!parsed.success) {
+    return { ok: false, message: "Please fix the highlighted fields.", errors: fieldErrors(parsed.error) };
+  }
+  const user = await db.user.findUnique({ where: { id: actor.id } });
+  if (!user || !(await verifyPassword(current, user.passwordHash))) {
+    return { ok: false, message: "Your current password is incorrect.", errors: { currentPassword: "Incorrect" } };
+  }
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(parsed.data.password) } });
+  // Sign out every other device; keep this one.
+  await db.session.deleteMany({ where: { userId: user.id, NOT: { id: actor.sessionId } } });
+  await logActivity(actor, "updated", "admin", `${actor.name} changed their password`, user.id);
+  return { ok: true, message: "Password changed. Other devices have been signed out." };
 }
 
 /* ---------- posts ---------- */

@@ -1,7 +1,6 @@
 export const site = {
   name: "ACM Davidson",
   fullName: "ACM Davidson College Student Chapter",
-  tagline: "Davidson College's home for people who love computing.",
   description:
     "The Davidson College student chapter of the Association for Computing Machinery (ACM). Workshops, talks, socials, and a community for everyone interested in computer science.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",

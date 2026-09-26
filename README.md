@@ -25,12 +25,16 @@ npm run dev                 # http://localhost:3000
 ```
 
 Sign in at `/admin/login` with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`. After the
-password, the site emails a 6-digit one-time code to `OTP_EMAIL` (or the admin's own address
-if `OTP_EMAIL` is empty) and asks for it before creating a session. **This means SMTP must be
-configured for admin sign-in to work in production.** In development without SMTP the code is
-printed to the terminal instead.
+password, the site emails a 6-digit one-time code to that admin's own email address and asks
+for it before creating a session. **This means SMTP must be configured for admin sign-in to
+work in production.** In development without SMTP the code is printed to the terminal instead.
 
-Change the password right away:
+Add more admins from the **Admins** page in the dashboard (name, email, starting password).
+Each admin signs in with their own email, gets codes at their own inbox, and their name is
+recorded in the activity log for every change they make. Admins can change their own password
+on the same page.
+
+Change the seeded password right away, either on the Admins page or with:
 
 ```bash
 npm run create-admin -- you@davidson.edu "Your Name" "a-long-password"
@@ -72,6 +76,7 @@ SEED_SAMPLE_CONTENT=false npm run db:seed
   class year so you can reply from Outlook (also emailed when SMTP is configured)
 - Subscribers: mailing list with CSV export
 - Activity log: who created/edited/deleted/published what, and when
+- Admins: add or remove admin accounts, change your own password
 - Log out, and "log out all sessions"
 
 **Spam protection**: honeypot field, per-IP rate limiting on forms and login, and optional
@@ -82,7 +87,7 @@ Cloudflare Turnstile (set both `TURNSTILE_*` keys in `.env`).
 - Passwords are hashed with bcrypt (cost 12) and never logged, returned, or rendered. Login
   compares against a dummy hash when the email is unknown so response time doesn't reveal
   which emails exist.
-- Admin sign-in is two-step: password, then a 6-digit code emailed to `OTP_EMAIL`. Only a
+- Admin sign-in is two-step: password, then a 6-digit code emailed to the admin's address. Only a
   bcrypt hash of the code is stored; codes expire after 10 minutes and lock after 5 wrong
   guesses. Codes are single-use.
 - Sessions are random 256-bit tokens stored hashed (SHA-256) in the database, in an

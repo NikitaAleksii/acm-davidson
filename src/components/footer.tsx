@@ -23,8 +23,7 @@ export function Footer() {
             height={72}
             className="h-16 w-16"
           />
-          <p className="mt-3 max-w-xs text-sm text-muted">{site.tagline}</p>
-          <p className="mt-3 text-sm">
+          <p className="mt-4 text-sm">
             <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 hover:underline">
               <Mail size={16} aria-hidden /> {site.email}
             </a>

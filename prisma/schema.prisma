@@ -15,8 +15,10 @@ model User {
   name         String
   passwordHash String
   createdAt    DateTime      @default(now())
+  lastLoginAt  DateTime?
   sessions     Session[]
   activityLogs ActivityLog[]
+  challenges   LoginChallenge[]
 }
 
 model Session {
@@ -72,6 +74,7 @@ model LoginChallenge {
   id        String   @id @default(cuid())
   tokenHash String   @unique
   userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   codeHash  String
   attempts  Int      @default(0)
   expiresAt DateTime

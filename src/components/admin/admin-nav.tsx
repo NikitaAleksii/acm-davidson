@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, CalendarDays, FileText, LayoutDashboard, Mail, Users, UserPlus } from "lucide-react";
+import { Activity, CalendarDays, FileText, LayoutDashboard, Mail, ShieldCheck, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/messages", label: "Messages", Icon: Mail },
   { href: "/admin/subscribers", label: "Subscribers", Icon: UserPlus },
   { href: "/admin/activity", label: "Activity log", Icon: Activity },
+  { href: "/admin/admins", label: "Admins", Icon: ShieldCheck },
 ];
 
 export function AdminNav() {

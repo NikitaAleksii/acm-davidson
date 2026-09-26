@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getCurrentUser, hasPendingChallenge } from "@/lib/auth";
+import { getCurrentUser, getPendingChallengeEmail } from "@/lib/auth";
 import { VerifyForm } from "@/components/admin/verify-form";
 import { Card } from "@/components/ui";
 
@@ -14,9 +14,8 @@ export const metadata: Metadata = {
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
   if (await getCurrentUser()) redirect(next?.startsWith("/admin") ? next : "/admin");
-  if (!(await hasPendingChallenge())) redirect("/admin/login");
-
-  const recipient = process.env.OTP_EMAIL;
+  const recipient = await getPendingChallengeEmail();
+  if (!recipient) redirect("/admin/login");
 
   return (
     <main id="main" className="flex flex-1 items-center justify-center bg-surface-muted px-4 py-16">
@@ -26,8 +25,8 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
         </Link>
         <h1 className="mt-4 text-center font-display text-xl font-bold">Check your email</h1>
         <p className="mt-1 text-center text-sm text-muted">
-          We sent a 6-digit sign-in code{recipient ? ` to ${recipient}` : " to your email"}. It expires in
-          10 minutes.
+          We sent a 6-digit sign-in code to <span className="font-medium text-fg">{recipient}</span>. It
+          expires in 10 minutes.
         </p>
         <div className="mt-6">
           <VerifyForm next={next} />

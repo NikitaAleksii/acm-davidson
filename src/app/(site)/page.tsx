@@ -28,8 +28,7 @@ export default async function HomePage() {
             <h1 className="mt-4 font-display text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
               <span className="text-brand-500">acm</span> davidson
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-gray-300 sm:text-xl">{site.tagline}</p>
-            <p className="mt-3 max-w-xl text-gray-400">
+            <p className="mt-5 max-w-xl text-lg text-gray-300 sm:text-xl">
               Workshops, tech talks, socials, and a friendly community for anyone curious about
               computing. All majors and experience levels welcome.
             </p>

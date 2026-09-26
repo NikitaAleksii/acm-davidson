@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Post } from "@prisma/client";
-import { formatLongDate, parseTags } from "@/lib/utils";
+import { formatLongDate, parseTags, isUpload } from "@/lib/utils";
 import { Container, Tag } from "./ui";
 import { Markdown } from "./markdown";
 
@@ -43,6 +43,7 @@ export function PostArticle({ post, preview = false }: { post: Post; preview?: b
           <figure className="mb-8">
             <Image
               src={post.coverImage}
+              unoptimized={isUpload(post.coverImage)}
               alt={post.coverAlt ?? ""}
               width={1200}
               height={675}

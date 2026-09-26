@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CalendarDays, CalendarPlus, ExternalLink, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
-import { formatEventRange, truncate } from "@/lib/utils";
+import { formatEventRange, truncate, isUpload } from "@/lib/utils";
 import { ButtonLink, Container } from "@/components/ui";
 import { Markdown } from "@/components/markdown";
 
@@ -98,6 +98,7 @@ export default async function EventPage({ params }: Props) {
           <figure className="lg:order-first lg:col-start-2 lg:row-start-1">
             <Image
               src={event.image}
+              unoptimized={isUpload(event.image)}
               alt={event.imageAlt ?? ""}
               width={720}
               height={480}

@@ -126,3 +126,12 @@ export function absoluteUrl(path: string) {
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
+
+/**
+ * Admin-uploaded images are served by our own /uploads route. They skip Next's
+ * image optimizer (which can fail to fetch them behind some hosts' proxies) and
+ * load directly; uploads are already capped at 5 MB.
+ */
+export function isUpload(src: string | null | undefined) {
+  return Boolean(src && src.startsWith("/uploads/"));
+}

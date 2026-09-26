@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isUpload } from "@/lib/utils";
 import Image from "next/image";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { db } from "@/lib/db";
@@ -31,7 +32,8 @@ export default async function AdminTeam({
   const Row = ({ o, index, total }: { o: (typeof officers)[number]; index: number; total: number }) => (
     <li className="flex flex-wrap items-center gap-3 p-3">
       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-600">
-        {o.photo && <Image src={o.photo} alt="" fill sizes="40px" className="object-cover" />}
+        {o.photo && <Image src={o.photo}
+              unoptimized={isUpload(o.photo)} alt="" fill sizes="40px" className="object-cover" />}
       </div>
       <div className="min-w-0 flex-1">
         <Link href={`/admin/team/${o.id}`} className="font-semibold hover:underline">

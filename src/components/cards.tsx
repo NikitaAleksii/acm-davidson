@@ -4,7 +4,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { Github, Linkedin } from "./brand-icons";
 import type { Event, Officer, Post } from "@prisma/client";
 import { Card, Tag } from "./ui";
-import { formatDate, formatEventRange, parseTags, truncate } from "@/lib/utils";
+import { formatDate, formatEventRange, parseTags, truncate, isUpload } from "@/lib/utils";
 
 export function PostCard({ post, priority = false }: { post: Post; priority?: boolean }) {
   const tags = parseTags(post.tags);
@@ -15,6 +15,7 @@ export function PostCard({ post, priority = false }: { post: Post; priority?: bo
           <div className="relative aspect-[16/9] w-full bg-surface-muted">
             <Image
               src={post.coverImage}
+              unoptimized={isUpload(post.coverImage)}
               alt={post.coverAlt ?? ""}
               fill
               sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
@@ -57,6 +58,7 @@ export function EventCard({ event, past = false }: { event: Event; past?: boolea
           <div className="relative aspect-[16/9] w-full bg-surface-muted">
             <Image
               src={event.image}
+              unoptimized={isUpload(event.image)}
               alt={event.imageAlt ?? ""}
               fill
               sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
@@ -97,6 +99,7 @@ export function OfficerCard({ officer }: { officer: Officer }) {
         {officer.photo ? (
           <Image
             src={officer.photo}
+              unoptimized={isUpload(officer.photo)}
             alt={officer.photoAlt ?? `Portrait of ${officer.name}`}
             fill
             sizes="112px"

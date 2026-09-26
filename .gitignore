@@ -15,7 +15,7 @@ prisma/*.db
 prisma/*.db-journal
 
 # admin-uploaded images (see UPLOAD_DIR)
-uploads/
+/uploads/
 
 # misc
 .DS_Store

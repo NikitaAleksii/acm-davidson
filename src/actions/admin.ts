@@ -5,17 +5,22 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import {
+  consumePasswordReset,
   createLoginChallenge,
+  createPasswordReset,
   createSession,
   destroyAllSessions,
   destroyCurrentSession,
   getCurrentUser,
   hashPassword,
+  lookupPasswordReset,
   requireAdmin,
+  requireOwner,
   verifyLoginChallenge,
   verifyPassword,
 } from "@/lib/auth";
-import { sendAdminWelcome, sendLoginCode } from "@/lib/email";
+import { sendAdminWelcome, sendLoginCode, sendPasswordResetEmail } from "@/lib/email";
+import { absoluteUrl } from "@/lib/utils";
 import { logActivity } from "@/lib/activity";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { fromDateTimeLocal, joinTags, slugify } from "@/lib/utils";
@@ -146,7 +151,7 @@ const adminSchema = z.object({
 });
 
 export async function createAdmin(_prev: FormState, formData: FormData): Promise<FormState> {
-  const actor = await requireAdmin();
+  const actor = await requireOwner();
   const parsed = adminSchema.safeParse({
     name: str(formData, "name"),
     email: str(formData, "email").toLowerCase(),
@@ -170,15 +175,70 @@ export async function createAdmin(_prev: FormState, formData: FormData): Promise
 }
 
 export async function deleteAdmin(formData: FormData) {
-  const actor = await requireAdmin();
+  const actor = await requireOwner();
   const id = str(formData, "id");
   if (id === actor.id) return; // can't remove yourself
-  const total = await db.user.count();
-  if (total <= 1) return; // keep at least one admin
-  const user = await db.user.delete({ where: { id } }).catch(() => null);
-  if (!user) return;
+  const target = await db.user.findUnique({ where: { id } });
+  if (!target) return;
+  if (target.role === "owner") {
+    const owners = await db.user.count({ where: { role: "owner" } });
+    if (owners <= 1) return; // keep at least one owner
+  }
+  const user = await db.user.delete({ where: { id } });
   await logActivity(actor, "deleted", "admin", `removed admin ${user.name} <${user.email}>`, user.id);
   revalidatePath("/admin/admins");
+}
+
+/** Owner asks an admin to set a new password; they get a one-hour link by email. */
+export async function requestPasswordReset(formData: FormData) {
+  const actor = await requireOwner();
+  const id = str(formData, "id");
+  const user = await db.user.findUnique({ where: { id } });
+  if (!user) return;
+  const token = await createPasswordReset(user.id);
+  const link = absoluteUrl(`/admin/reset?token=${token}`);
+  const sent = await sendPasswordResetEmail(user.email, user.name, link, actor.name).catch((err) => {
+    console.error("[admin] reset email failed", err);
+    return false;
+  });
+  await logActivity(
+    actor,
+    "updated",
+    "admin",
+    sent ? `sent a password reset link to ${user.name} <${user.email}>` : `tried to send a password reset to ${user.email} but email failed`,
+    user.id,
+  );
+  revalidatePath("/admin/admins");
+  redirect(`/admin/admins?reset=${sent ? "sent" : "failed"}&to=${encodeURIComponent(user.email)}`);
+}
+
+/** Public: the admin follows the emailed link and sets a new password. */
+export async function resetPassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const ip = await clientIp();
+  if (!rateLimit(`reset:${ip}`, 10, 15 * 60 * 1000)) {
+    return { ok: false, message: "Too many attempts. Try again in 15 minutes." };
+  }
+  const token = str(formData, "token");
+  const reset = await lookupPasswordReset(token);
+  if (!reset) return { ok: false, message: "This link is invalid or has expired. Ask an owner to send a new one.", errors: { restart: "1" } };
+  const parsed = z
+    .object({ password: passwordRule, confirm: z.string() })
+    .refine((d) => d.password === d.confirm, { message: "Passwords don't match", path: ["confirm"] })
+    .safeParse({ password: str(formData, "password"), confirm: str(formData, "confirm") });
+  if (!parsed.success) {
+    return { ok: false, message: "Please fix the highlighted fields.", errors: fieldErrors(parsed.error) };
+  }
+  await db.user.update({ where: { id: reset.userId }, data: { passwordHash: await hashPassword(parsed.data.password) } });
+  await db.session.deleteMany({ where: { userId: reset.userId } });
+  await consumePasswordReset(reset.id);
+  await logActivity(
+    { id: reset.user.id, email: reset.user.email, name: reset.user.name, role: "admin", sessionId: "" },
+    "updated",
+    "admin",
+    `${reset.user.name} set a new password via reset link`,
+    reset.user.id,
+  );
+  redirect("/admin/login?reset=1");
 }
 
 export async function changeOwnPassword(_prev: FormState, formData: FormData): Promise<FormState> {

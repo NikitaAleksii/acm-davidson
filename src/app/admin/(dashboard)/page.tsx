@@ -2,11 +2,12 @@ import Link from "next/link";
 import { CalendarDays, FileText, Mail, UserPlus, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatDateTime, formatEventRange } from "@/lib/utils";
-import { ButtonLink, Card, SectionTitle } from "@/components/ui";
+import { Alert, ButtonLink, Card, SectionTitle } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ forbidden?: string }> }) {
+  const { forbidden } = await searchParams;
   const now = new Date();
   const [posts, drafts, upcoming, officers, unread, subscribers, recent, nextEvents, recentDrafts] =
     await Promise.all([
@@ -31,6 +32,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="space-y-10">
+      {forbidden && <Alert kind="error">Only owners can do that.</Alert>}
       <div>
         <SectionTitle as="h1" title="Dashboard" />
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

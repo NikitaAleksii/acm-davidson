@@ -75,6 +75,33 @@ export async function sendAdminWelcome(to: string, name: string, addedBy: string
   return true;
 }
 
+/** Emails a password-reset link requested by an owner. */
+export async function sendPasswordResetEmail(to: string, name: string, link: string, requestedBy: string): Promise<boolean> {
+  const t = transporter();
+  const subject = `Set a new password for the ${site.name} admin dashboard`;
+  const text = [
+    `Hi ${name},`,
+    "",
+    `${requestedBy} asked you to set a new password for the ${site.name} website admin.`,
+    "Open this link within the next hour to choose one:",
+    "",
+    `    ${link}`,
+    "",
+    "If you weren't expecting this, you can ignore it. Your current password still works",
+    "until you use the link.",
+  ].join("\n");
+  if (!t) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[email] SMTP not configured; cannot send password reset.");
+      return false;
+    }
+    console.log(`[email] SMTP not configured. Password reset link for ${to}: ${link}`);
+    return true;
+  }
+  await t.sendMail({ from: process.env.SMTP_FROM ?? `ACM Davidson Website <${site.email}>`, to, subject, text });
+  return true;
+}
+
 export type ContactMessage = {
   name: string;
   email: string;

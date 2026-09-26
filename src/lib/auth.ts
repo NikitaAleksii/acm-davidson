@@ -143,7 +143,8 @@ export async function clearSessionCookie() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export type SessionUser = { id: string; email: string; name: string; sessionId: string };
+export type SessionUser = { id: string; email: string; name: string; role: string; sessionId: string };
+export const isOwner = (u: SessionUser | null | undefined) => u?.role === "owner";
 
 /** Returns the current admin user or null. Cached per request. */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
@@ -152,7 +153,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   if (!token) return null;
   const session = await db.session.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { user: { select: { id: true, email: true, name: true } } },
+    include: { user: { select: { id: true, email: true, name: true, role: true } } },
   });
   if (!session) return null;
   if (session.expiresAt < new Date()) {
@@ -170,6 +171,45 @@ export async function requireAdmin(nextPath?: string): Promise<SessionUser> {
     redirect(`/admin/login${q}`);
   }
   return user;
+}
+
+/** Like requireAdmin, but only for owners (who manage other admins). */
+export async function requireOwner(): Promise<SessionUser> {
+  const user = await requireAdmin();
+  if (!isOwner(user)) redirect("/admin?forbidden=1");
+  return user;
+}
+
+/* ---------- owner-initiated password reset links ---------- */
+
+const RESET_MINUTES = 60;
+
+export async function createPasswordReset(userId: string): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  await db.passwordReset.deleteMany({ where: { userId } });
+  await db.passwordReset.create({
+    data: { tokenHash: hashToken(token), userId, expiresAt: new Date(Date.now() + RESET_MINUTES * 60 * 1000) },
+  });
+  return token;
+}
+
+/** Returns the user a valid reset token belongs to, or null. Does not consume it. */
+export async function lookupPasswordReset(token: string) {
+  if (!token) return null;
+  const reset = await db.passwordReset.findUnique({
+    where: { tokenHash: hashToken(token) },
+    include: { user: { select: { id: true, email: true, name: true } } },
+  });
+  if (!reset) return null;
+  if (reset.expiresAt < new Date()) {
+    await db.passwordReset.delete({ where: { id: reset.id } }).catch(() => {});
+    return null;
+  }
+  return reset;
+}
+
+export async function consumePasswordReset(id: string) {
+  await db.passwordReset.delete({ where: { id } }).catch(() => {});
 }
 
 export async function destroyCurrentSession() {

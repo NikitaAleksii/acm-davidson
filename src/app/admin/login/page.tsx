@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; all?: string }>;
+  searchParams: Promise<{ next?: string; all?: string; reset?: string }>;
 }) {
-  const { next, all } = await searchParams;
+  const { next, all, reset } = await searchParams;
   if (await getCurrentUser()) redirect(next?.startsWith("/admin") ? next : "/admin");
 
   return (
@@ -30,6 +30,11 @@ export default async function LoginPage({
         {all && (
           <div className="mt-4">
             <Alert kind="success">You&apos;ve been signed out of all devices.</Alert>
+          </div>
+        )}
+        {reset && (
+          <div className="mt-4">
+            <Alert kind="success">Password updated. Sign in with your new password.</Alert>
           </div>
         )}
         <div className="mt-6">

@@ -29,10 +29,17 @@ password, the site emails a 6-digit one-time code to that admin's own email addr
 for it before creating a session. **This means SMTP must be configured for admin sign-in to
 work in production.** In development without SMTP the code is printed to the terminal instead.
 
-Add more admins from the **Admins** page in the dashboard (name, email, starting password).
-Each admin signs in with their own email, gets codes at their own inbox, and their name is
-recorded in the activity log for every change they make. Admins can change their own password
-on the same page.
+There are two roles. The seeded account is an **owner**: owners can add and remove admins
+and send password-reset links from the **Admins** page. Regular **admins** can do everything
+else in the dashboard and change their own password, but can't manage accounts. Every admin
+signs in with their own email, gets codes at their own inbox, and their name is recorded in
+the activity log for every change they make.
+
+To make someone else an owner (or reset any account from the terminal):
+
+```bash
+npm run create-admin -- officer@davidson.edu "Full Name" "a-strong-password" owner
+```
 
 Change the seeded password right away, either on the Admins page or with:
 
@@ -76,7 +83,7 @@ SEED_SAMPLE_CONTENT=false npm run db:seed
   class year so you can reply from Outlook (also emailed when SMTP is configured)
 - Subscribers: mailing list with CSV export
 - Activity log: who created/edited/deleted/published what, and when
-- Admins: add or remove admin accounts, change your own password
+- Admins: owners add/remove admin accounts and send password-reset links; everyone can change their own password
 - Log out, and "log out all sessions"
 
 **Spam protection**: honeypot field, per-IP rate limiting on forms and login, and optional
@@ -87,6 +94,8 @@ Cloudflare Turnstile (set both `TURNSTILE_*` keys in `.env`).
 - Passwords are hashed with bcrypt (cost 12) and never logged, returned, or rendered. Login
   compares against a dummy hash when the email is unknown so response time doesn't reveal
   which emails exist.
+- Password-reset links (sent by owners) are random 256-bit tokens stored hashed, expire after
+  one hour, are single-use, and sign the account out everywhere when used.
 - Admin sign-in is two-step: password, then a 6-digit code emailed to the admin's address. Only a
   bcrypt hash of the code is stored; codes expire after 10 minutes and lock after 5 wrong
   guesses. Codes are single-use.

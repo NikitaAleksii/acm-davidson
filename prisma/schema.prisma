@@ -14,11 +14,25 @@ model User {
   email        String        @unique
   name         String
   passwordHash String
+  role         String        @default("admin") // "owner" can manage admins; "admin" cannot
   createdAt    DateTime      @default(now())
   lastLoginAt  DateTime?
   sessions     Session[]
   activityLogs ActivityLog[]
   challenges   LoginChallenge[]
+  resets       PasswordReset[]
+}
+
+/// One-hour link an owner can send so an admin sets a new password. Token stored hashed.
+model PasswordReset {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Session {

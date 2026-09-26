@@ -20,12 +20,13 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD ?? "change-me-now";
 
   const passwordHash = await bcrypt.hash(password, 12);
+  // The seeded account is the owner: it can add/remove admins and send password resets.
   await db.user.upsert({
     where: { email },
-    update: { name },
-    create: { email, name, passwordHash },
+    update: { name, role: "owner" },
+    create: { email, name, passwordHash, role: "owner" },
   });
-  console.log(`Admin user ready: ${email}`);
+  console.log(`Owner account ready: ${email}`);
 
   if (process.env.SEED_SAMPLE_CONTENT === "false") return;
 

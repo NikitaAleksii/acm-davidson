@@ -7,7 +7,9 @@ import { SESSION_COOKIE } from "@/lib/auth-constants";
  */
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (pathname === "/admin/login" || pathname === "/admin/login/verify") return NextResponse.next();
+  if (pathname === "/admin/login" || pathname === "/admin/login/verify" || pathname === "/admin/reset") {
+    return NextResponse.next();
+  }
   if (!req.cookies.get(SESSION_COOKIE)?.value) {
     const url = req.nextUrl.clone();
     url.pathname = "/admin/login";

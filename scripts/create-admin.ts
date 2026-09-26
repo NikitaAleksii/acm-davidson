@@ -1,9 +1,10 @@
 /**
  * Create or reset an admin account.
  *
- *   npm run create-admin -- officer@davidson.edu "Full Name" "a-strong-password"
+ *   npm run create-admin -- officer@davidson.edu "Full Name" "a-strong-password" [owner|admin]
  *
- * Falls back to ADMIN_EMAIL / ADMIN_NAME / ADMIN_PASSWORD env vars.
+ * Falls back to ADMIN_EMAIL / ADMIN_NAME / ADMIN_PASSWORD env vars. The role is
+ * only applied when given; the very first account is always made an owner.
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -11,7 +12,11 @@ import bcrypt from "bcryptjs";
 const db = new PrismaClient();
 
 async function main() {
-  const [, , argEmail, argName, argPassword] = process.argv;
+  const [, , argEmail, argName, argPassword, argRole] = process.argv;
+  if (argRole && argRole !== "owner" && argRole !== "admin") {
+    console.error('Role must be "owner" or "admin".');
+    process.exit(1);
+  }
   const email = (argEmail ?? process.env.ADMIN_EMAIL ?? "").toLowerCase();
   const name = argName ?? process.env.ADMIN_NAME ?? "ACM Admin";
   const password = argPassword ?? process.env.ADMIN_PASSWORD ?? "";
@@ -26,14 +31,16 @@ async function main() {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
+  const isFirst = (await db.user.count()) === 0;
+  const role = argRole ?? (isFirst ? "owner" : undefined);
   const user = await db.user.upsert({
     where: { email },
-    update: { name, passwordHash },
-    create: { email, name, passwordHash },
+    update: { name, passwordHash, ...(role ? { role } : {}) },
+    create: { email, name, passwordHash, role: role ?? "admin" },
   });
   // Resetting a password signs that user out everywhere.
   await db.session.deleteMany({ where: { userId: user.id } });
-  console.log(`Admin ready: ${user.name} <${user.email}>`);
+  console.log(`${user.role === "owner" ? "Owner" : "Admin"} ready: ${user.name} <${user.email}>`);
 }
 
 main()

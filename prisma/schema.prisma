@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite by default. To use Postgres in production, change `provider` to
+// "postgresql", set DATABASE_URL accordingly, and run `npm run db:migrate`.
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  sessions     Session[]
+  activityLogs ActivityLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  userAgent String?
+
+  @@index([userId])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  excerpt     String?
+  content     String
+  tags        String    @default("") // comma-separated, e.g. "Workshop,Hackathon"
+  coverImage  String?
+  coverAlt    String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  authorName  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String
+  startsAt    DateTime
+  endsAt      DateTime?
+  location    String
+  image       String?
+  imageAlt    String?
+  rsvpUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startsAt])
+}
+
+model Officer {
+  id           String   @id @default(cuid())
+  name         String
+  role         String
+  bio          String?
+  photo        String?
+  photoAlt     String?
+  linkedin     String?
+  github       String?
+  academicYear String // e.g. "2025-2026"
+  sortOrder    Int      @default(0)
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([academicYear, archived, sortOrder])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  classYear String?
+  body      String
+  ip        String?
+  emailed   Boolean  @default(false)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  classYear String?
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorName  String
+  action     String // created | updated | deleted | published | unpublished | login | logout | ...
+  entityType String // post | event | officer | message | subscriber | session
+  entityId   String?
+  summary    String
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}

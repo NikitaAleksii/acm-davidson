@@ -40,7 +40,6 @@ ENV PORT=3000 \
 # non-root process could not create the database there. The container has nothing else in it.
 RUN mkdir -p /data
 COPY --from=build /app ./
-VOLUME ["/data"]
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
   CMD curl -fsS http://localhost:3000/api/health || exit 1

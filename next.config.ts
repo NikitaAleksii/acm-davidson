@@ -10,10 +10,12 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
   poweredByHeader: false,
   async headers() {
+    const isDev = process.env.NODE_ENV === "development";
     const csp = [
       "default-src 'self'",
       // Next.js needs inline scripts for hydration; Turnstile is loaded when enabled.
-      "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
+      // React's dev tooling needs eval(); it is never allowed in production builds.
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://challenges.cloudflare.com`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",

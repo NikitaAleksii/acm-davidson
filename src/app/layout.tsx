@@ -46,7 +46,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-screen flex flex-col">
+      {/* suppressHydrationWarning: browser extensions (e.g. Grammarly) add attributes to <body>. */}
+      <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <a href="#main" className="skip-link">
           Skip to content
         </a>

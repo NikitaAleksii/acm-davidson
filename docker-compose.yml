@@ -1,0 +1,21 @@
+# For a VPS or any machine with Docker:  docker compose up -d --build
+# Put your settings in .env (copy .env.example). Data persists in the "acm-data" volume.
+services:
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY:-}
+    env_file: .env
+    environment:
+      DATABASE_URL: file:/data/acm.db
+      UPLOAD_DIR: /data/uploads
+    ports:
+      - "3000:3000"
+    volumes:
+      - acm-data:/data
+    restart: unless-stopped
+
+volumes:
+  acm-data:

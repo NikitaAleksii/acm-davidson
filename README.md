@@ -142,20 +142,10 @@ image URL instead of uploading.
 
 ## Deploying
 
-The app needs a Node server with a writable disk for SQLite and uploads (a small VPS, Fly.io,
-Railway, Render, or a Docker host all work). Build and run with:
-
-```bash
-npm run build
-npm run db:deploy          # apply migrations
-npm start                  # serves on PORT (default 3000)
-```
-
-Set `NEXT_PUBLIC_SITE_URL` to the public URL so link previews and calendar files use the right
-domain. Put the site behind HTTPS so the session cookie is marked `Secure`.
-
-Vercel or other serverless hosts work too if you switch to Postgres and store uploads on
-object storage (or use image URLs only).
+See **[DEPLOY.md](DEPLOY.md)** for step-by-step instructions (Railway recommended; Fly.io,
+Render, and Docker Compose also covered). In short: the repo has a `Dockerfile`; mount a
+volume at `/data`, set the environment variables from `.env.example`, and the container
+applies migrations and creates the first owner account on start.
 
 ## Scripts
 
@@ -164,6 +154,7 @@ object storage (or use image URLs only).
 | `npm run dev`          | Development server                            |
 | `npm run build`        | Production build (also runs `prisma generate`)|
 | `npm start`            | Run the production build                      |
+| `npm run start:prod`   | Migrate, bootstrap the owner, then start (used in Docker) |
 | `npm run typecheck`    | TypeScript check                              |
 | `npm run db:migrate`   | Create/apply migrations in development        |
 | `npm run db:deploy`    | Apply migrations in production                |

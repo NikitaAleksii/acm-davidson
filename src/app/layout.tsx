@@ -29,6 +29,9 @@ export const metadata: Metadata = {
     apple: "/images/acm-davidson-diamond.png",
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: "Xz9FAHKGhFP7NOkVgmX2EcFOz1llduejk_H7ozLnoEI",
+  },
 };
 
 export const viewport: Viewport = {
